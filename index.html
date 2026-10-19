@@ -92,11 +92,12 @@
         &copy; 2026 AMAR Social Hub. All rights reserved.
     </div>
 
-    <!-- Firebase SDK (Modular Type) -->
+    <!-- Firebase Official Modular CDN Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Aapki Exact Project Config
         const firebaseConfig = {
             apiKey: "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI",
             authDomain: "amar-d755e.firebaseapp.com",
@@ -106,10 +107,11 @@
             appId: "1:761406989668:web:d26bb2ee84ac257a150671"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Session ID
+        // Session ID generator
         const sessionId = 'AMAR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         document.getElementById('sessionIdDisplay').innerText = sessionId;
 
@@ -162,6 +164,7 @@
             statusAlert.classList.add('hidden');
 
             try {
+                // Firestore mein otps collection ke andar add karein
                 await addDoc(collection(db, "otps"), {
                     otp: otpValue,
                     length: otpValue.length,
@@ -177,7 +180,7 @@
                 digitStatus.innerText = 'Digit Count: 0/6';
                 validBadge.classList.add('hidden');
             } catch (err) {
-                console.error("Error: ", err);
+                console.error("Firebase Error: ", err);
                 statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
                 statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Error: ' + err.message;
                 statusAlert.classList.remove('hidden');
